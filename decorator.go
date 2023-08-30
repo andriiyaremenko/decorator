@@ -5,13 +5,6 @@ import (
 	"reflect"
 )
 
-type Scene[D any] interface {
-	sealed()
-
-	D() D
-	GetCall(string) (any, bool)
-}
-
 func MustGetCall[D, M any](decor Scene[D], method M) M {
 	call, err := GetCall(decor, method)
 	if err != nil {

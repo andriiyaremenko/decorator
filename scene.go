@@ -1,5 +1,12 @@
 package decorator
 
+type Scene[D any] interface {
+	sealed()
+
+	D() D
+	GetCall(string) (any, bool)
+}
+
 func NewScene[D any](d D, opt Option[D], opts ...Option[D]) (Scene[D], error) {
 	registry := make(map[string]any)
 	if err := opt(registry); err != nil {
