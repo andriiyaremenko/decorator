@@ -2,7 +2,7 @@
 
 This package provides variation of Decorator pattern.
 
-### To install tinysl:
+### To install decorator:
 `go get -u github.com/andriiyaremenko/decorator`
 
 ### How to use:
