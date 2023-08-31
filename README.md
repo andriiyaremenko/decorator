@@ -37,18 +37,55 @@ func (t *validate) Invalid(s string) error {
 	return nil
 }
 
+type log struct{ s strings.Builder }
+
+func (l *log) GetLog() string {
+	return l.s.String()
+}
+
+func (l *log) LogSomeServiceSomeMethod(
+	fn func(*someService, string, bool) (string, error),
+) func(*someService, string, bool) (string, error) {
+	return func(s *someService, arg1 string, arg2 bool) (string, error) {
+		l.s.WriteString(fmt.Sprintf("got: %q, %t\t'", arg1, arg2))
+		result, err := fn(s, arg1, arg2)
+		if err != nil {
+			l.s.WriteString(fmt.Sprintf("resulted in error: %s\n", err))
+			return result, err
+		}
+
+		l.s.WriteString(fmt.Sprintf("resulted in %q\n", result))
+		return result, err
+	}
+}
+
+func (l *log) LogSomeOtherServiceSomeMethod(
+	fn func(*someOtherService, string) string,
+) func(*someOtherService, string) string {
+	return func(s *someOtherService, arg string) string {
+		l.s.WriteString(fmt.Sprintf("got: %q\t'", arg))
+
+		result := fn(s, arg)
+
+		l.s.WriteString(fmt.Sprintf("resulted in %q\n", result))
+
+		return result
+	}
+}
+
 // ... other file
 
 var (
 	service                      = &someService{s: "test"}
 	anotherService               = &someOtherService{s: "fail"}
 	anotherServiceComposedMethod func(*someOtherService, string) (string, error)
-	validateDecorator            decorator.Scene[*validate]
+	validateDecorator            decorator.Scene
+	logDecorator                 decorator.Scene
 )
 
 validateDecorator, err := decorator.NewScene(
 	&validate{},
-	decorator.Decorate((*someService).SomeMethod,
+	decorator.SceneDecor((*someService).SomeMethod,
 		func(
 			d *validate, fn func(*someService, string, bool) (string, error),
 		) func(*someService, string, bool) (string, error) {
@@ -60,7 +97,7 @@ validateDecorator, err := decorator.NewScene(
 				return fn(s, prefix, fail)
 			}
 		}),
-	decorator.Decorate(anotherServiceComposedMethod,
+	decorator.SceneDecor(anotherServiceComposedMethod,
 		func(
 			d *validate, fn func(*someOtherService, string) (string, error),
 		) func(*someOtherService, string) (string, error) {
@@ -73,9 +110,18 @@ validateDecorator, err := decorator.NewScene(
 			}
 		}),
 )
+logDecorator, err = decorator.NewScene(
+	&log{s: strings.Builder{}},
+	decorator.SceneDecor((*someService).SomeMethod, (*log).LogSomeServiceSomeMethod),
+	decorator.SceneDecor((*someOtherService).SomeMethod, (*log).LogSomeOtherServiceSomeMethod),
+)
 
-result, err := decorator.MustGetCall(validateDecorator, (*someService).SomeMethod)(service, "some ", false)
-anotherResult, err := decorator.MustGetCall(validateDecorator, anotherServiceComposedMethod)(anotherService, "some ")
+result, err := decorator.MustGetCall(
+	(*someService).SomeMethod, validateDecorator, logDecorator
+)(service, "some ", false)
+anotherResult, err := decorator.MustGetCall(
+	anotherServiceComposedMethod, validateDecorator, logDecorator
+)(anotherService, "some ")
 
 // check errors, use results...
 ```

@@ -5,8 +5,8 @@ import (
 	"reflect"
 )
 
-func MustGetCall[D, M any](decor Scene[D], method M) M {
-	call, err := GetCall(decor, method)
+func MustDecorate[M any](method M, scene Scene, scenes ...Scene) M {
+	call, err := Decorate(method, scene, scenes...)
 	if err != nil {
 		panic(err)
 	}
@@ -14,27 +14,42 @@ func MustGetCall[D, M any](decor Scene[D], method M) M {
 	return call
 }
 
-func GetCall[D, M any](decor Scene[D], method M) (M, error) {
+func Decorate[M any](method M, scene Scene, scenes ...Scene) (M, error) {
+	method, err := getCall(method, scene)
+	if err != nil {
+		return method, err
+	}
+
+	for _, scene := range scenes {
+		if method, err = getCall(method, scene); err != nil {
+			return method, err
+		}
+	}
+
+	return method, nil
+}
+
+func getCall[M any](method M, scene Scene) (M, error) {
 	var zero M
 	t := reflect.TypeOf(method)
 	if t.Kind() != reflect.Func {
 		return zero, fmt.Errorf("wrong method argument %s: %w", t, ErrNotAFunc)
 	}
 
-	registryElement, ok := decor.GetCall(t.String())
+	registryElement, ok := scene.GetCall(t.String())
 	if !ok {
 		return method, nil
 	}
 
-	decoratedFn, ok := registryElement.(func(D, M) M)
+	decoratedFn, ok := registryElement.(func(any, M) M)
 
 	if !ok {
 		return zero, fmt.Errorf(
 			"expected %s, got %s: %w",
-			reflect.TypeOf(func(D, M) M { return zero }),
+			reflect.TypeOf(func(any, M) M { return zero }),
 			reflect.TypeOf(registryElement),
 			ErrWrongDecoratedType)
 	}
 
-	return decoratedFn(decor.D(), method), nil
+	return decoratedFn(scene.D(), method), nil
 }

@@ -15,7 +15,7 @@ var _ = Describe("Scene", func() {
 		It("NewScene will return an ErrNotAFunc error", func() {
 			_, err := decorator.NewScene(
 				&validate{},
-				decorator.Decorate("really stupid mistake",
+				decorator.SceneDecor("really stupid mistake",
 					func(d *validate, fn string) string { return "really stupid mistake" },
 				),
 			)
@@ -29,7 +29,7 @@ var _ = Describe("Scene", func() {
 		It("NewScene will return and ErrDuplicate error", func() {
 			_, err := decorator.NewScene(
 				&validate{},
-				decorator.Decorate((*someService).SomeMethod,
+				decorator.SceneDecor((*someService).SomeMethod,
 					func(
 						d *validate, fn func(*someService, string, bool) (string, error),
 					) func(*someService, string, bool) (string, error) {
@@ -41,7 +41,7 @@ var _ = Describe("Scene", func() {
 							return fn(s, prefix, fail)
 						}
 					}),
-				decorator.Decorate((*someService).SomeMethod,
+				decorator.SceneDecor((*someService).SomeMethod,
 					func(
 						d *validate, fn func(*someService, string, bool) (string, error),
 					) func(*someService, string, bool) (string, error) {

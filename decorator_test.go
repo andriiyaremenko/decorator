@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/andriiyaremenko/decorator"
 	. "github.com/onsi/ginkgo/v2"
@@ -15,7 +16,9 @@ var _ = Describe("Decorator", func() {
 		service                      = &someService{s: "test"}
 		anotherService               = &someOtherService{s: "fail"}
 		anotherServiceComposedMethod func(*someOtherService, string) (string, error)
-		validateDecorator            decorator.Scene[*validate]
+		logger                       *log
+		validateDecorator            decorator.Scene
+		logDecorator                 decorator.Scene
 	)
 
 	BeforeEach(func() {
@@ -23,7 +26,7 @@ var _ = Describe("Decorator", func() {
 
 		validateDecorator, err = decorator.NewScene(
 			&validate{},
-			decorator.Decorate((*someService).SomeMethod,
+			decorator.SceneDecor((*someService).SomeMethod,
 				func(
 					d *validate, fn func(*someService, string, bool) (string, error),
 				) func(*someService, string, bool) (string, error) {
@@ -35,7 +38,7 @@ var _ = Describe("Decorator", func() {
 						return fn(s, prefix, fail)
 					}
 				}),
-			decorator.Decorate(anotherServiceComposedMethod,
+			decorator.SceneDecor(anotherServiceComposedMethod,
 				func(
 					d *validate, fn func(*someOtherService, string) (string, error),
 				) func(*someOtherService, string) (string, error) {
@@ -50,45 +53,68 @@ var _ = Describe("Decorator", func() {
 		)
 
 		Expect(err).NotTo(HaveOccurred())
+
+		logger = &log{s: strings.Builder{}}
+		logDecorator, err = decorator.NewScene(
+			logger,
+			decorator.SceneDecor((*someService).SomeMethod, (*log).LogSomeServiceSomeMethod),
+			decorator.SceneDecor((*someOtherService).SomeMethod, (*log).LogSomeOtherServiceSomeMethod),
+		)
+
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	When("can validate input", func() {
 		It("returns no error if valid", func() {
-			result, err := decorator.MustGetCall(validateDecorator, (*someService).SomeMethod)(service, "some ", false)
+			result, err := decorator.MustDecorate(
+				(*someService).SomeMethod, validateDecorator, logDecorator,
+			)(service, "some ", false)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).To(Equal("some test"))
+			Expect(logger.GetLog()).To(Equal("got: \"some \", false\t'resulted in \"some test\"\n"))
 		})
 
 		It("returns error if occurred", func() {
-			_, err := decorator.MustGetCall(validateDecorator, (*someService).SomeMethod)(service, "some ", true)
+			_, err := decorator.MustDecorate(
+				(*someService).SomeMethod, validateDecorator, logDecorator,
+			)(service, "some ", true)
 
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(Equal(errors.New("some error")))
+			Expect(logger.GetLog()).To(Equal("got: \"some \", true\t'resulted in error: some error\n"))
 		})
 
 		It("returns validation error from decorator", func() {
-			_, err := decorator.MustGetCall(validateDecorator, (*someService).SomeMethod)(service, "fail", true)
+			_, err := decorator.MustDecorate(
+				(*someService).SomeMethod, validateDecorator, logDecorator,
+			)(service, "fail", true)
 
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(Equal(errors.New("validation failed")))
+			Expect(logger.GetLog()).To(Equal("got: \"fail\", true\t'resulted in error: validation failed\n"))
 		})
 
 		It("can use composed (undeclared) method ", func() {
-			_, err := decorator.MustGetCall(validateDecorator, anotherServiceComposedMethod)(anotherService, "some ")
+			_, err := decorator.MustDecorate(
+				anotherServiceComposedMethod, validateDecorator,
+			)(anotherService, "some ")
 
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(Equal(errors.New("validation failed")))
 		})
 
 		It("can use existing not decorated method", func() {
-			res := decorator.MustGetCall(validateDecorator, (*someOtherService).SomeMethod)(anotherService, "some ")
+			res := decorator.MustDecorate(
+				(*someOtherService).SomeMethod, validateDecorator, logDecorator,
+			)(anotherService, "some ")
 			Expect(res).To(Equal("some fail"))
+			Expect(logger.GetLog()).To(Equal("got: \"some \"\t'resulted in \"some fail\"\n"))
 		})
 	})
-	When("GetCall", func() {
+	When("Decorate", func() {
 		It("errors if is used with something other than func", func() {
-			_, err := decorator.GetCall(validateDecorator, struct{}{})
+			_, err := decorator.Decorate(struct{}{}, validateDecorator)
 
 			Expect(err).To(HaveOccurred())
 
@@ -111,7 +137,7 @@ var _ = Describe("Decorator", func() {
 
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = decorator.GetCall(otherDecorator, fn)
+			_, err = decorator.Decorate(fn, otherDecorator)
 
 			Expect(err).To(HaveOccurred())
 
@@ -120,9 +146,9 @@ var _ = Describe("Decorator", func() {
 			}
 		})
 	})
-	When("MustGetCall", func() {
+	When("MustDecorate", func() {
 		It("will panic on error", func() {
-			Expect(func() { decorator.MustGetCall(validateDecorator, struct{}{}) }).To(Panic())
+			Expect(func() { decorator.MustDecorate(struct{}{}, validateDecorator) }).To(Panic())
 		})
 	})
 })

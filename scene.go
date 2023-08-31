@@ -1,13 +1,13 @@
 package decorator
 
-type Scene[D any] interface {
+type Scene interface {
 	sealed()
 
-	D() D
+	D() any
 	GetCall(string) (any, bool)
 }
 
-func NewScene[D any](d D, opt Option[D], opts ...Option[D]) (Scene[D], error) {
+func NewScene[D any](d D, opt Option[D], opts ...Option[D]) (Scene, error) {
 	registry := make(map[string]any)
 	if err := opt(registry); err != nil {
 		return nil, err
@@ -19,21 +19,21 @@ func NewScene[D any](d D, opt Option[D], opts ...Option[D]) (Scene[D], error) {
 		}
 	}
 
-	return &scene[D]{d: d, registry: registry}, nil
+	return &scene{d: d, registry: registry}, nil
 }
 
-type scene[D any] struct {
-	d        D
+type scene struct {
+	d        any
 	registry map[string]any
 }
 
-func (d *scene[D]) sealed() {}
+func (d *scene) sealed() {}
 
-func (d *scene[D]) D() D {
+func (d *scene) D() any {
 	return d.d
 }
 
-func (d *scene[D]) GetCall(name string) (any, bool) {
+func (d *scene) GetCall(name string) (any, bool) {
 	m, ok := d.registry[name]
 	return m, ok
 }
