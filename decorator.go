@@ -9,8 +9,8 @@ type Decorated[M any] struct {
 	Call M
 }
 
-func MustDecorate[M any](method M, scene Scene, scenes ...Scene) Decorated[M] {
-	decorated, err := Decorate(method, scene, scenes...)
+func MustDecorate[M any](method M, scenes ...Scene) Decorated[M] {
+	decorated, err := Decorate(method, scenes...)
 	if err != nil {
 		panic(err)
 	}
@@ -18,13 +18,9 @@ func MustDecorate[M any](method M, scene Scene, scenes ...Scene) Decorated[M] {
 	return decorated
 }
 
-func Decorate[M any](method M, scene Scene, scenes ...Scene) (Decorated[M], error) {
+func Decorate[M any](method M, scenes ...Scene) (Decorated[M], error) {
 	var err error
 	decorated := Decorated[M]{Call: method}
-	decorated.Call, err = getCall(decorated.Call, scene)
-	if err != nil {
-		return decorated, err
-	}
 
 	for _, scene := range scenes {
 		if decorated.Call, err = getCall(decorated.Call, scene); err != nil {
