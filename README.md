@@ -116,10 +116,10 @@ logDecorator, err = decorator.NewScene(
 	decorator.SceneDecor((*someOtherService).SomeMethod, (*log).LogSomeOtherServiceSomeMethod),
 )
 
-result, err := decorator.MustGetCall(
+result, err := decorator.MustDecorate(
 	(*someService).SomeMethod, validateDecorator, logDecorator
 )(service, "some ", false)
-anotherResult, err := decorator.MustGetCall(
+anotherResult, err := decorator.MustDecorate(
 	anotherServiceComposedMethod, validateDecorator, logDecorator
 )(anotherService, "some ")
 
@@ -131,9 +131,9 @@ anotherResult, err := decorator.MustGetCall(
  * `decorator.Option` - options type to use with `decorator.NewScene`.
 
 ### Functions:
- * `decorator.GetCall`
- * `decorator.MustGetCall`
+ * `decorator.Decorate`
+ * `decorator.MustDecorate`
  * `decorator.NewScene`
 
 ### Options for new Scene:
- * `decorator.Decorate`
+ * `decorator.SceneDecor`

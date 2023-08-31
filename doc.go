@@ -85,7 +85,7 @@ How to use:
 
 	validateDecorator, err := decorator.NewScene(
 		&validate{},
-		decorator.Decorate((*someService).SomeMethod,
+		decorator.SceneDecor((*someService).SomeMethod,
 			func(
 				d *validate, fn func(*someService, string, bool) (string, error),
 			) func(*someService, string, bool) (string, error) {
@@ -97,7 +97,7 @@ How to use:
 					return fn(s, prefix, fail)
 				}
 			}),
-		decorator.Decorate(anotherServiceComposedMethod,
+		decorator.SceneDecor(anotherServiceComposedMethod,
 			func(
 				d *validate, fn func(*someOtherService, string) (string, error),
 			) func(*someOtherService, string) (string, error) {
@@ -117,10 +117,10 @@ How to use:
 		decorator.SceneDecor((*someOtherService).SomeMethod, (*log).LogSomeOtherServiceSomeMethod),
 	)
 
-	result, err := decorator.MustGetCall(
+	result, err := decorator.MustDecorate(
 		(*someService).SomeMethod, validateDecorator, logDecorator
 	)(service, "some ", false)
-	anotherResult, err := decorator.MustGetCall(
+	anotherResult, err := decorator.MustDecorate(
 		anotherServiceComposedMethod, validateDecorator, logDecorator
 	)(anotherService, "some ")
 
@@ -131,11 +131,11 @@ Types
   - decorator.Option - options type to use with decorator.NewScene.
 
 Functions:
-  - decorator.GetCall
-  - decorator.MustGetCall
+  - decorator.Decorate
+  - decorator.MustDecorate
   - decorator.NewScene
 
 Options for new Scene:
-  - decorator.Decorate
+  - decorator.SceneDecor
 */
 package decorator
