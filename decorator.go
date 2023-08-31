@@ -5,12 +5,15 @@ import (
 	"reflect"
 )
 
+// Decorated function or method call wrapper.
 type Decorated[M any] struct {
+	// Decorated function or method call.
 	Call M
 }
 
-func MustDecorate[M any](method M, scenes ...Scene) Decorated[M] {
-	decorated, err := Decorate(method, scenes...)
+// Decorates function or method call using provided scenes. Panics if fails to decorate method.
+func MustDecorate[M any](fn M, scenes ...Scene) Decorated[M] {
+	decorated, err := Decorate(fn, scenes...)
 	if err != nil {
 		panic(err)
 	}
@@ -18,6 +21,7 @@ func MustDecorate[M any](method M, scenes ...Scene) Decorated[M] {
 	return decorated
 }
 
+// Decorates function or method call using provided scenes. Errors if fails to decorate method.
 func Decorate[M any](method M, scenes ...Scene) (Decorated[M], error) {
 	var err error
 	decorated := Decorated[M]{Call: method}

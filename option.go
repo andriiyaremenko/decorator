@@ -5,8 +5,10 @@ import (
 	"reflect"
 )
 
+// Scene constructor option.
 type Option[D any] func(map[string]any) error
 
+// Scene constructor option to provide decoration mechanism for function or method call.
 func SceneDecor[M, D any](fn M, decoration func(d D, originalCall M) M) Option[D] {
 	return func(opts map[string]any) error {
 		t := reflect.TypeOf(fn)
