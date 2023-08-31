@@ -116,12 +116,12 @@ logDecorator, err = decorator.NewScene(
 	decorator.SceneDecor((*someOtherService).SomeMethod, (*log).LogSomeOtherServiceSomeMethod),
 )
 
-result, err := decorator.MustDecorate(
-	(*someService).SomeMethod, validateDecorator, logDecorator
-)(service, "some ", false)
-anotherResult, err := decorator.MustDecorate(
-	anotherServiceComposedMethod, validateDecorator, logDecorator
-)(anotherService, "some ")
+result, err := decorator.
+	MustDecorate((*someService).SomeMethod, validateDecorator, logDecorator).
+	Call(service, "some ", false)
+anotherResult, err := decorator.
+	MustDecorate(anotherServiceComposedMethod, validateDecorator, logDecorator).
+	Call(anotherService, "some ")
 
 // check errors, use results...
 ```

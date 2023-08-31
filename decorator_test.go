@@ -66,9 +66,9 @@ var _ = Describe("Decorator", func() {
 
 	When("can validate input", func() {
 		It("returns no error if valid", func() {
-			result, err := decorator.MustDecorate(
-				(*someService).SomeMethod, validateDecorator, logDecorator,
-			)(service, "some ", false)
+			result, err := decorator.
+				MustDecorate((*someService).SomeMethod, validateDecorator, logDecorator).
+				Call(service, "some ", false)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).To(Equal("some test"))
@@ -76,9 +76,9 @@ var _ = Describe("Decorator", func() {
 		})
 
 		It("returns error if occurred", func() {
-			_, err := decorator.MustDecorate(
-				(*someService).SomeMethod, validateDecorator, logDecorator,
-			)(service, "some ", true)
+			_, err := decorator.
+				MustDecorate((*someService).SomeMethod, validateDecorator, logDecorator).
+				Call(service, "some ", true)
 
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(Equal(errors.New("some error")))
@@ -86,9 +86,9 @@ var _ = Describe("Decorator", func() {
 		})
 
 		It("returns validation error from decorator", func() {
-			_, err := decorator.MustDecorate(
-				(*someService).SomeMethod, validateDecorator, logDecorator,
-			)(service, "fail", true)
+			_, err := decorator.
+				MustDecorate((*someService).SomeMethod, validateDecorator, logDecorator).
+				Call(service, "fail", true)
 
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(Equal(errors.New("validation failed")))
@@ -96,18 +96,18 @@ var _ = Describe("Decorator", func() {
 		})
 
 		It("can use composed (undeclared) method ", func() {
-			_, err := decorator.MustDecorate(
-				anotherServiceComposedMethod, validateDecorator,
-			)(anotherService, "some ")
+			_, err := decorator.
+				MustDecorate(anotherServiceComposedMethod, validateDecorator).
+				Call(anotherService, "some ")
 
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(Equal(errors.New("validation failed")))
 		})
 
 		It("can use existing not decorated method", func() {
-			res := decorator.MustDecorate(
-				(*someOtherService).SomeMethod, validateDecorator, logDecorator,
-			)(anotherService, "some ")
+			res := decorator.
+				MustDecorate((*someOtherService).SomeMethod, validateDecorator, logDecorator).
+				Call(anotherService, "some ")
 			Expect(res).To(Equal("some fail"))
 			Expect(logger.GetLog()).To(Equal("got: \"some \"\t'resulted in \"some fail\"\n"))
 		})

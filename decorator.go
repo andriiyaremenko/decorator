@@ -5,28 +5,34 @@ import (
 	"reflect"
 )
 
-func MustDecorate[M any](method M, scene Scene, scenes ...Scene) M {
-	call, err := Decorate(method, scene, scenes...)
+type Decorated[M any] struct {
+	Call M
+}
+
+func MustDecorate[M any](method M, scene Scene, scenes ...Scene) Decorated[M] {
+	decorated, err := Decorate(method, scene, scenes...)
 	if err != nil {
 		panic(err)
 	}
 
-	return call
+	return decorated
 }
 
-func Decorate[M any](method M, scene Scene, scenes ...Scene) (M, error) {
-	method, err := getCall(method, scene)
+func Decorate[M any](method M, scene Scene, scenes ...Scene) (Decorated[M], error) {
+	var err error
+	decorated := Decorated[M]{Call: method}
+	decorated.Call, err = getCall(decorated.Call, scene)
 	if err != nil {
-		return method, err
+		return decorated, err
 	}
 
 	for _, scene := range scenes {
-		if method, err = getCall(method, scene); err != nil {
-			return method, err
+		if decorated.Call, err = getCall(decorated.Call, scene); err != nil {
+			return decorated, err
 		}
 	}
 
-	return method, nil
+	return decorated, nil
 }
 
 func getCall[M any](method M, scene Scene) (M, error) {
